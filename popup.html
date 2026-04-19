@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nocturnal Curator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon">auto_awesome</span>
+        <span class="brand-name">NOCTURNAL</span>
+      </div>
+      <button class="avatar" type="button" aria-label="Profile">
+        <span>AJ</span>
+      </button>
+    </header>
+
+    <main class="content">
+      <section class="screen active" data-screen="templates">
+        <div class="hero-card">
+          <div class="hero-image hero-image-gallery"></div>
+          <div class="hero-overlay"></div>
+          <div class="hero-copy">
+            <span class="eyebrow">Selected Template</span>
+            <h1>Ethereal Flux</h1>
+            <p>Cinematic motion graphics with fluid dynamics.</p>
+          </div>
+        </div>
+
+        <div class="search-row">
+          <div class="search-box">
+            <span class="icon">search</span>
+            <input type="text" placeholder="Search prompts..." />
+          </div>
+          <button class="ghost-button" type="button">Filter</button>
+        </div>
+
+        <div class="filter-tabs">
+          <button class="chip active" type="button">Trending</button>
+          <button class="chip" type="button">New</button>
+        </div>
+
+        <div class="grid">
+          <article class="tile tile-wide">
+            <div class="tile-media tile-media-1"></div>
+            <div class="tile-overlay"></div>
+            <div class="tile-copy">
+              <span class="tag feature">Featured</span>
+              <span class="tag video">VIDEO</span>
+              <h3>Ethereal Flux</h3>
+              <p>Cinematic motion graphics with fluid dynamics</p>
+            </div>
+          </article>
+
+          <article class="tile">
+            <div class="tile-media tile-media-2"></div>
+            <div class="tile-overlay"></div>
+            <div class="tile-copy">
+              <span class="tag">Image</span>
+              <h4>Neon Noir</h4>
+            </div>
+          </article>
+
+          <article class="tile">
+            <div class="tile-media tile-media-3"></div>
+            <div class="tile-overlay"></div>
+            <div class="tile-copy">
+              <span class="tag">Image</span>
+              <h4>Cosmic Oil</h4>
+            </div>
+          </article>
+
+          <article class="tile">
+            <div class="tile-media tile-media-4"></div>
+            <div class="tile-overlay"></div>
+            <div class="tile-copy">
+              <span class="tag video">Video</span>
+              <h4>Prism Flow</h4>
+            </div>
+          </article>
+
+          <article class="tile">
+            <div class="tile-media tile-media-5"></div>
+            <div class="tile-overlay"></div>
+            <div class="tile-copy">
+              <span class="tag">Image</span>
+              <h4>Alps Peak</h4>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="create">
+        <div class="hero-card">
+          <div class="hero-image hero-image-create"></div>
+          <div class="hero-overlay"></div>
+          <div class="hero-copy">
+            <span class="eyebrow">Generate Content</span>
+            <h1>Cinematic Landscape</h1>
+            <p>Describe the mood, motion, and atmosphere you want.</p>
+          </div>
+        </div>
+
+        <label class="section-label" for="prompt">Generation Context</label>
+        <div class="field">
+          <textarea id="prompt" placeholder="Describe specific details, mood, or elements to add..."></textarea>
+          <div class="helper">Describe light, motion, and atmosphere.</div>
+        </div>
+
+        <div class="control-grid">
+          <div class="control-card">
+            <label>Ratio</label>
+            <select>
+              <option>16:9</option>
+              <option selected>1:1</option>
+              <option>9:16</option>
+            </select>
+          </div>
+
+          <div class="control-card">
+            <div class="control-header">
+              <label>HD Render</label>
+              <button class="toggle on" type="button" aria-pressed="true"><span></span></button>
+            </div>
+            <div class="control-footer">
+              <span class="icon">high_quality</span>
+              <span>4K Upscale</span>
+            </div>
+          </div>
+
+          <div class="control-card wide">
+            <div>
+              <label>Generate Video</label>
+              <p>Animate static landscape</p>
+            </div>
+            <button class="toggle" type="button" aria-pressed="false"><span></span></button>
+          </div>
+        </div>
+
+        <button class="primary-button" type="button">
+          Generate
+          <span class="icon">auto_fix_high</span>
+        </button>
+
+        <details class="advanced">
+          <summary>Advanced Settings</summary>
+          <div class="advanced-body">
+            <div class="field compact">
+              <label for="negative">Negative Prompt</label>
+              <textarea id="negative" placeholder="What should be avoided?"></textarea>
+            </div>
+            <div class="dual-inputs">
+              <div class="field compact">
+                <label for="strength">Strength</label>
+                <input id="strength" type="number" value="0.7" step="0.1" min="0" max="1" />
+              </div>
+              <div class="field compact">
+                <label for="steps">Steps</label>
+                <input id="steps" type="number" value="30" min="1" max="100" />
+              </div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="screen" data-screen="history">
+        <div class="history-header">
+          <div>
+            <span class="eyebrow">History</span>
+            <h1>Recent generations</h1>
+          </div>
+          <button class="ghost-button" type="button">Clear</button>
+        </div>
+
+        <div class="history-list">
+          <article class="history-item">
+            <div class="history-thumb history-thumb-1"></div>
+            <div>
+              <h3>Twilight Cabin</h3>
+              <p>Image · 16:9 · 2 min ago</p>
+            </div>
+          </article>
+          <article class="history-item">
+            <div class="history-thumb history-thumb-2"></div>
+            <div>
+              <h3>Neon Reflection</h3>
+              <p>Video · 1:1 · 18 min ago</p>
+            </div>
+          </article>
+          <article class="history-item">
+            <div class="history-thumb history-thumb-3"></div>
+            <div>
+              <h3>Cosmic Bloom</h3>
+              <p>Image · 9:16 · 1 hour ago</p>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary">
+      <button class="nav-item active" type="button" data-target="templates">
+        <span class="icon">grid_view</span>
+        <span>Templates</span>
+      </button>
+      <button class="nav-item create" type="button" data-target="create" aria-label="Create">
+        <span class="icon">add_circle</span>
+      </button>
+      <button class="nav-item" type="button" data-target="history">
+        <span class="icon">history</span>
+        <span>History</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
