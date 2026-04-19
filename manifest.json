@@ -7,5 +7,5 @@
     "default_title": "Nocturnal Curator",
     "default_popup": "popup.html"
   },
-  "permissions": []
+  "permissions": ["tabs"]
 }

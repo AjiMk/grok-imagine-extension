@@ -11,7 +11,26 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="app-shell">
+  <div class="loading-state hidden" id="loadingState" role="status" aria-live="polite">
+    <div class="loading-card">
+      <span class="icon loading-icon">auto_awesome</span>
+      <p>Checking Grok tab...</p>
+    </div>
+  </div>
+
+  <div class="launch-state" id="launchState">
+    <div class="launch-card">
+      <span class="eyebrow">Grok Required</span>
+      <h1>Open Grok to use this extension</h1>
+      <p>The full interface appears when Grok is active in your current tab.</p>
+      <button class="primary-button launch-button" id="launchGrokButton" type="button">
+        Launch Grok
+        <span class="icon">open_in_new</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="app-shell hidden">
     <header class="topbar">
       <div class="brand">
         <span class="brand-icon">auto_awesome</span>
