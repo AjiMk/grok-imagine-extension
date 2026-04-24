@@ -1,11 +1,14 @@
 <script setup>
 import { ref } from 'vue';
+import CustomSelect from './components/CustomSelect.vue';
 
 const activeTab = ref('templates');
 const prompt = ref('');
 const generationType = ref('image');
 const imageAspectRatio = ref('1:1');
 const imageSpeed = ref('Speed');
+const videoResolution = ref('720p');
+const videoDuration = ref('10s');
 
 const templates = [
   { id: 1, title: 'Ethereal Flux', type: 'video', featured: true, image: 'https://picsum.photos/seed/flux/800/500' },
@@ -36,8 +39,23 @@ function generate() {
     alert('Please enter a prompt');
     return;
   }
-  console.log('Generating:', { prompt: prompt.value, type: generationType.value, ratio: imageAspectRatio.value, speed: imageSpeed.value });
-  alert('Generation submitted! Check console for details.');
+
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]) {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        type: 'NOCTURNAL_SUBMIT_PROMPT',
+        generation: {
+          promptText: prompt.value,
+          attachments: [],
+          options: {
+            type: generationType.value,
+            aspectRatio: imageAspectRatio.value,
+            ...(generationType.value === 'image' ? { speed: imageSpeed.value } : { resolution: videoResolution.value, duration: videoDuration.value })
+          }
+        }
+      });
+    }
+  });
 }
 </script>
 
@@ -168,27 +186,53 @@ function generate() {
         <div class="grid grid-cols-2 gap-3">
           <div class="p-4 bg-muted/10 rounded-xl space-y-2">
             <label class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Aspect Ratio</label>
-            <select
+            <CustomSelect
               v-model="imageAspectRatio"
-              class="w-full bg-transparent border-0 outline-none text-sm font-medium cursor-pointer"
-            >
-              <option value="1:1">1:1</option>
-              <option value="16:9">16:9</option>
-              <option value="9:16">9:16</option>
-              <option value="4:3">4:3</option>
-              <option value="3:4">3:4</option>
-            </select>
+              :options="[
+                { value: '1:1', label: '1:1' },
+                { value: '16:9', label: '16:9' },
+                { value: '9:16', label: '9:16' },
+                { value: '2:3', label: '2:3' },
+                { value: '3:2', label: '3:2' }
+              ]"
+              placeholder="Select ratio..."
+            />
           </div>
-          <div class="p-4 bg-muted/10 rounded-xl space-y-2">
+          <div v-if="generationType === 'image'" class="p-4 bg-muted/10 rounded-xl space-y-2">
             <label class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Mode</label>
-            <select
+            <CustomSelect
               v-model="imageSpeed"
-              class="w-full bg-transparent border-0 outline-none text-sm font-medium cursor-pointer"
-            >
-              <option value="Speed">⚡ Speed</option>
-              <option value="Quality">✨ Quality</option>
-            </select>
+              :options="[
+                { value: 'Speed', label: '⚡ Speed' },
+                { value: 'Quality', label: '✨ Quality' }
+              ]"
+              placeholder="Select mode..."
+            />
           </div>
+          <div v-else class="p-4 bg-muted/10 rounded-xl space-y-2">
+            <label class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Resolution</label>
+            <CustomSelect
+              v-model="videoResolution"
+              :options="[
+                { value: '480p', label: '480p' },
+                { value: '720p', label: '720p' }
+              ]"
+              placeholder="Select resolution..."
+            />
+          </div>
+        </div>
+
+        <!-- Video Duration (only for video) -->
+        <div v-if="generationType === 'video'" class="p-4 bg-muted/10 rounded-xl space-y-2">
+          <label class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Duration</label>
+          <CustomSelect
+            v-model="videoDuration"
+            :options="[
+              { value: '6s', label: '6 seconds' },
+              { value: '10s', label: '10 seconds' }
+            ]"
+            placeholder="Select duration..."
+          />
         </div>
 
         <!-- Generate Button -->

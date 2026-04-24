@@ -62,24 +62,122 @@ function findRadioGroup(label, root = document) {
   return groups.find((group) => normalizeText(group.getAttribute("aria-label") || "").includes(target));
 }
 
-async function clickRadioOption(groupLabel, optionLabel, root = document) {
-  const group = findRadioGroup(groupLabel, root);
+async function setGenerationMode(mode, root = document) {
+  const container = root.querySelector('div[role="radiogroup"][aria-label="Generation mode"]');
+
+  if (!container) {
+    return { ok: false, reason: 'Generation mode container not found' };
+  }
+
+  const buttons = Array.from(container.querySelectorAll('button[role="radio"]'));
+  const targetButton = buttons.find(btn =>
+    btn.textContent.trim().toLowerCase() === mode.toLowerCase()
+  );
+
+  if (!targetButton) {
+    return { ok: false, reason: `Mode "${mode}" not found. Try "image" or "video".` };
+  }
+
+  if (targetButton.getAttribute("aria-checked") === "true") {
+    return { ok: true };
+  }
+
+  targetButton.click();
+  await delay(300);
+  return { ok: true };
+}
+
+async function setResolution(resolution, root = document) {
+  const resGroup = root.querySelector('[role="radiogroup"][aria-label="Video resolution"]');
+
+  if (!resGroup) {
+    return { ok: false, reason: 'Video resolution group not found' };
+  }
+
+  const options = Array.from(resGroup.querySelectorAll('button[role="radio"]'));
+  const targetOption = options.find(opt => opt.innerText.trim() === resolution);
+
+  if (!targetOption) {
+    return { ok: false, reason: `Resolution "${resolution}" not found` };
+  }
+
+  if (targetOption.getAttribute("aria-checked") === "true") {
+    return { ok: true };
+  }
+
+  targetOption.click();
+  await delay(200);
+  return { ok: true };
+}
+
+async function setDuration(duration, root = document) {
+  const durationGroup = root.querySelector('[role="radiogroup"][aria-label="Video duration"]');
+
+  if (!durationGroup) {
+    return { ok: false, reason: 'Video duration group not found' };
+  }
+
+  const options = Array.from(durationGroup.querySelectorAll('button[role="radio"]'));
+  const targetOption = options.find(opt => opt.innerText.trim() === duration);
+
+  if (!targetOption) {
+    return { ok: false, reason: `Duration "${duration}" not found` };
+  }
+
+  if (targetOption.getAttribute("aria-checked") === "true") {
+    return { ok: true };
+  }
+
+  targetOption.click();
+  await delay(200);
+  return { ok: true };
+}
+
+async function setGenerationSpeed(value, root = document) {
+  const normalizedValue = normalizeText(value);
+  const group = findRadioGroup("Image generation speed", root);
   if (!group) {
-    return { ok: false, reason: `${groupLabel} control not found` };
+    return { ok: false, reason: "Image generation speed control not found" };
   }
 
-  const target = normalizeText(optionLabel);
-  const options = Array.from(group.querySelectorAll('[role="radio"], button'));
-  const option = options.find((element) => getElementText(element).includes(target));
+  const buttons = Array.from(group.querySelectorAll('[role="radio"], button'));
+  const targetButton = buttons.find((btn) => normalizeText(btn.textContent || "").includes(normalizedValue));
+  if (!targetButton) {
+    return { ok: false, reason: `${value} option not found` };
+  }
+
+  if (targetButton.getAttribute("aria-checked") === "true") {
+    return { ok: true };
+  }
+
+  targetButton.click();
+  await delay(200);
+  return { ok: true };
+}
+
+async function setAspectRatio(targetRatio, root = document) {
+  const trigger = findDropdownTrigger(["Aspect Ratio"], ["2:3", "3:2", "1:1", "9:16", "16:9"], root);
+  if (!trigger) {
+    return { ok: false, reason: "Aspect Ratio control not found" };
+  }
+
+  if (normalizeText(trigger.textContent || "").includes(normalizeText(targetRatio))) {
+    return { ok: true };
+  }
+
+  trigger.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+  trigger.click();
+  await delay(500);
+
+  const option = findOpenMenuOption(targetRatio, document);
   if (!option) {
-    return { ok: false, reason: `${optionLabel} option not found` };
+    return { ok: false, reason: `${targetRatio} option not found` };
   }
 
-  if (option.getAttribute("aria-checked") !== "true") {
-    option.click();
-    await delay(200);
-  }
-
+  await delay(200);
+  option.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+  option.click();
+  await delay(150);
   return { ok: true };
 }
 
@@ -97,7 +195,7 @@ function findDropdownTrigger(labelCandidates, knownValues, root = document) {
   });
 }
 
-function findOpenMenuOption(value) {
+function findOpenMenuOption(value, root = document) {
   const target = normalizeText(value);
   const selectors = [
     '[role="menuitem"]',
@@ -106,51 +204,26 @@ function findOpenMenuOption(value) {
     '[cmdk-item]',
     "button",
   ];
-  const candidates = Array.from(document.querySelectorAll(selectors.join(","))).filter(isVisible);
-  return candidates.find((element) => getElementText(element).includes(target));
+  const candidates = Array.from(root.querySelectorAll(selectors.join(",")));
+  return candidates.find((element) => {
+    if (!isVisible(element)) return false;
+    const text = getElementText(element);
+    return text.includes(target) || text === target;
+  });
 }
 
-async function selectDropdownValue(labelCandidates, value, knownValues) {
-  const normalizedValue = normalizeText(value);
-  const root = getPromptSectionRoot();
-  const trigger = findDropdownTrigger(labelCandidates, knownValues, root);
-
-  if (!trigger) {
-    return { ok: false, reason: `${labelCandidates[0]} control not found` };
-  }
-
-  if (normalizeText(trigger.textContent || "").includes(normalizedValue)) {
-    return { ok: true };
-  }
-
-  trigger.click();
-  await delay(200);
-
-  const option = findOpenMenuOption(value);
-  if (!option) {
-    return { ok: false, reason: `${value} option not found` };
-  }
-
-  option.click();
-  await delay(150);
-  return { ok: true };
-}
-
-async function applyGenerationOptions(options = {}) {
+async function applyGenerationOptions(options = {}, root = document) {
   const results = [];
-  const mode = options.type === "video" ? "Video" : "Image";
-  const root = getPromptSectionRoot();
 
-  results.push(await clickRadioOption("Generation mode", mode, root));
-  await delay(250);
+  results.push(await setGenerationMode(options.type === "video" ? "video" : "image", root));
 
   if (options.type === "video") {
-    results.push(await selectDropdownValue(["Aspect Ratio"], options.aspectRatio, ["2:3", "3:2", "1:1", "9:16", "16:9"]));
-    results.push(await selectDropdownValue(["Duration"], options.duration, ["6s", "10s"]));
-    results.push(await selectDropdownValue(["Resolution", "Quality"], options.resolution, ["480p", "720p"]));
+    results.push(await setAspectRatio(options.aspectRatio, root));
+    results.push(await setDuration(options.duration, root));
+    results.push(await setResolution(options.resolution, root));
   } else {
-    results.push(await clickRadioOption("Image generation speed", options.speed || "Speed", root));
-    results.push(await selectDropdownValue(["Aspect Ratio"], options.aspectRatio, ["2:3", "3:2", "1:1", "9:16", "16:9"]));
+    results.push(await setGenerationSpeed(options.speed || "Speed", root));
+    results.push(await setAspectRatio(options.aspectRatio, root));
   }
 
   return {
@@ -158,6 +231,7 @@ async function applyGenerationOptions(options = {}) {
     results,
   };
 }
+
 
 function setNativeValue(element, value) {
   const prototype = Object.getPrototypeOf(element);
@@ -204,13 +278,14 @@ function insertPrompt(prompt) {
 
 function findSubmitButton() {
   const root = getPromptSectionRoot();
-  const direct = root.querySelector('button[type="submit"][aria-label="Submit"]:not([disabled])');
+  const direct = root.querySelector('button[type="submit"][aria-label="Submit"]')
   if (direct) {
     return direct;
   }
 
-  const buttons = Array.from(root.querySelectorAll("button"));
-  return buttons.find((button) => {
+  // Search in scoped root first
+  const scopedButtons = Array.from(root.querySelectorAll("button"));
+  const scopedResult = scopedButtons.find((button) => {
     const label = `${button.textContent || ""} ${button.getAttribute("aria-label") || ""}`.toLowerCase();
     return !button.disabled && (
       button.type === "submit" ||
@@ -220,6 +295,14 @@ function findSubmitButton() {
       label.includes("ask")
     );
   });
+
+  if (scopedResult) {
+    return scopedResult;
+  }
+
+  // Fall back to full document search for the Submit button
+  const docButtons = Array.from(document.querySelectorAll("button[type=\"submit\"][aria-label=\"Submit\"]"));
+  return docButtons.find((button) => !button.disabled) || null;
 }
 
 async function clickSubmit() {
@@ -232,14 +315,12 @@ async function clickSubmit() {
   }
 
   if (submitButton) {
-    submitButton.click();
-    return true;
-  }
-
-  const form = findComposer()?.closest("form");
-  if (form) {
-    form.requestSubmit?.();
-    return true;
+    const submitForm = document.querySelector('button[type="submit"][aria-label="Submit"]')?.closest('form');
+    if (submitForm) {
+      await delay(1000);
+      submitForm.requestSubmit();
+      return true;
+    }
   }
 
   return false;
@@ -314,15 +395,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const generation = message.generation || { promptText: message.prompt, attachments: [], options: {} };
 
   applyGenerationOptions(generation.options || {})
-    .then((optionsResult) => attachImages(generation.attachments || []))
-    .then((attachmentResult) => {
+    .then((optionsResult) => {
+      return attachImages(generation.attachments || []).then((attachmentResult) => ({
+        optionsResult,
+        attachmentResult,
+      }));
+    })
+    .then(({ optionsResult, attachmentResult }) => {
       const promptResult = insertPrompt(String(generation.promptText || generation.prompt || ""));
       if (promptResult.ok) {
         clickSubmit();
       }
-      return { optionsResult, attachmentResult, promptResult };
-    })
-    .then(({ optionsResult, attachmentResult, promptResult }) => {
       sendResponse({
         ok: promptResult.ok && optionsResult.ok,
         options: optionsResult,
