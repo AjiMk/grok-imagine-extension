@@ -56,103 +56,46 @@ function getPromptSectionRoot() {
     document;
 }
 
-function findRadioGroup(label, root = document) {
-  const groups = Array.from(root.querySelectorAll('[role="radiogroup"]'));
-  const target = normalizeText(label);
-  return groups.find((group) => normalizeText(group.getAttribute("aria-label") || "").includes(target));
+async function clickRadiogroupOption(groupLabel, value, root = document, matchFn = (text, val) => text === val) {
+  let group = root.querySelector(`[role="radiogroup"][aria-label="${groupLabel}"]`);
+  let attempts = 0;
+  while (!group && attempts < 10) {
+    await delay(100);
+    group = root.querySelector(`[role="radiogroup"][aria-label="${groupLabel}"]`);
+    attempts++;
+  }
+
+  if (!group) return { ok: false, reason: `${groupLabel} group not found` };
+
+  const options = Array.from(group.querySelectorAll('button[role="radio"]'));
+  const target = options.find(opt => matchFn(opt.innerText.trim(), value));
+  if (!target) return { ok: false, reason: `${value} option not found` };
+  if (target.getAttribute("aria-checked") === "true") return { ok: true };
+
+  target.click();
+  await delay(200);
+  return { ok: true };
 }
 
 async function setGenerationMode(mode, root = document) {
-  const container = root.querySelector('div[role="radiogroup"][aria-label="Generation mode"]');
-
-  if (!container) {
-    return { ok: false, reason: 'Generation mode container not found' };
+  const result = await clickRadiogroupOption("Generation mode", mode.toLowerCase(), root, (text, val) => text.toLowerCase() === val.toLowerCase());
+  if (result.ok && mode.toLowerCase() === "video") {
+    await delay(1500);
   }
-
-  const buttons = Array.from(container.querySelectorAll('button[role="radio"]'));
-  const targetButton = buttons.find(btn =>
-    btn.textContent.trim().toLowerCase() === mode.toLowerCase()
-  );
-
-  if (!targetButton) {
-    return { ok: false, reason: `Mode "${mode}" not found. Try "image" or "video".` };
-  }
-
-  if (targetButton.getAttribute("aria-checked") === "true") {
-    return { ok: true };
-  }
-
-  targetButton.click();
-  await delay(300);
-  return { ok: true };
+  return result;
 }
 
 async function setResolution(resolution, root = document) {
-  const resGroup = root.querySelector('[role="radiogroup"][aria-label="Video resolution"]');
-
-  if (!resGroup) {
-    return { ok: false, reason: 'Video resolution group not found' };
-  }
-
-  const options = Array.from(resGroup.querySelectorAll('button[role="radio"]'));
-  const targetOption = options.find(opt => opt.innerText.trim() === resolution);
-
-  if (!targetOption) {
-    return { ok: false, reason: `Resolution "${resolution}" not found` };
-  }
-
-  if (targetOption.getAttribute("aria-checked") === "true") {
-    return { ok: true };
-  }
-
-  targetOption.click();
-  await delay(200);
-  return { ok: true };
+  return clickRadiogroupOption("Video resolution", resolution, root, (text, val) => text.toLowerCase().includes(val.toLowerCase()));
 }
 
 async function setDuration(duration, root = document) {
-  const durationGroup = root.querySelector('[role="radiogroup"][aria-label="Video duration"]');
-
-  if (!durationGroup) {
-    return { ok: false, reason: 'Video duration group not found' };
-  }
-
-  const options = Array.from(durationGroup.querySelectorAll('button[role="radio"]'));
-  const targetOption = options.find(opt => opt.innerText.trim() === duration);
-
-  if (!targetOption) {
-    return { ok: false, reason: `Duration "${duration}" not found` };
-  }
-
-  if (targetOption.getAttribute("aria-checked") === "true") {
-    return { ok: true };
-  }
-
-  targetOption.click();
-  await delay(200);
-  return { ok: true };
+  return clickRadiogroupOption("Video duration", duration, root, (text, val) => text.toLowerCase().includes(val.toLowerCase()));
 }
 
 async function setGenerationSpeed(value, root = document) {
   const normalizedValue = normalizeText(value);
-  const group = findRadioGroup("Image generation speed", root);
-  if (!group) {
-    return { ok: false, reason: "Image generation speed control not found" };
-  }
-
-  const buttons = Array.from(group.querySelectorAll('[role="radio"], button'));
-  const targetButton = buttons.find((btn) => normalizeText(btn.textContent || "").includes(normalizedValue));
-  if (!targetButton) {
-    return { ok: false, reason: `${value} option not found` };
-  }
-
-  if (targetButton.getAttribute("aria-checked") === "true") {
-    return { ok: true };
-  }
-
-  targetButton.click();
-  await delay(200);
-  return { ok: true };
+  return clickRadiogroupOption("Image generation speed", normalizedValue, root, (text, val) => text.toLowerCase().includes(val));
 }
 
 async function setAspectRatio(targetRatio, root = document) {
@@ -391,6 +334,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type !== "NOCTURNAL_SUBMIT_PROMPT") {
     return false;
   }
+
+  console.log(message)
 
   const generation = message.generation || { promptText: message.prompt, attachments: [], options: {} };
 
