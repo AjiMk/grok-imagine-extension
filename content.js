@@ -62,6 +62,77 @@ function findRadioGroup(label, root = document) {
   return groups.find((group) => normalizeText(group.getAttribute("aria-label") || "").includes(target));
 }
 
+async function setGenerationMode(mode, root = document) {
+  const container = root.querySelector('div[role="radiogroup"][aria-label="Generation mode"]');
+
+  if (!container) {
+    return { ok: false, reason: 'Generation mode container not found' };
+  }
+
+  const buttons = Array.from(container.querySelectorAll('button[role="radio"]'));
+  const targetButton = buttons.find(btn =>
+    btn.textContent.trim().toLowerCase() === mode.toLowerCase()
+  );
+
+  if (!targetButton) {
+    return { ok: false, reason: `Mode "${mode}" not found. Try "image" or "video".` };
+  }
+
+  if (targetButton.getAttribute("aria-checked") === "true") {
+    return { ok: true };
+  }
+
+  targetButton.click();
+  await delay(300);
+  return { ok: true };
+}
+
+async function setResolution(resolution, root = document) {
+  const resGroup = root.querySelector('[role="radiogroup"][aria-label="Video resolution"]');
+
+  if (!resGroup) {
+    return { ok: false, reason: 'Video resolution group not found' };
+  }
+
+  const options = Array.from(resGroup.querySelectorAll('button[role="radio"]'));
+  const targetOption = options.find(opt => opt.innerText.trim() === resolution);
+
+  if (!targetOption) {
+    return { ok: false, reason: `Resolution "${resolution}" not found` };
+  }
+
+  if (targetOption.getAttribute("aria-checked") === "true") {
+    return { ok: true };
+  }
+
+  targetOption.click();
+  await delay(200);
+  return { ok: true };
+}
+
+async function setDuration(duration, root = document) {
+  const durationGroup = root.querySelector('[role="radiogroup"][aria-label="Video duration"]');
+
+  if (!durationGroup) {
+    return { ok: false, reason: 'Video duration group not found' };
+  }
+
+  const options = Array.from(durationGroup.querySelectorAll('button[role="radio"]'));
+  const targetOption = options.find(opt => opt.innerText.trim() === duration);
+
+  if (!targetOption) {
+    return { ok: false, reason: `Duration "${duration}" not found` };
+  }
+
+  if (targetOption.getAttribute("aria-checked") === "true") {
+    return { ok: true };
+  }
+
+  targetOption.click();
+  await delay(200);
+  return { ok: true };
+}
+
 async function setGenerationSpeed(value, root = document) {
   const normalizedValue = normalizeText(value);
   const group = findRadioGroup("Image generation speed", root);
@@ -144,11 +215,12 @@ function findOpenMenuOption(value, root = document) {
 async function applyGenerationOptions(options = {}, root = document) {
   const results = [];
 
+  results.push(await setGenerationMode(options.type === "video" ? "video" : "image", root));
+
   if (options.type === "video") {
-    results.push(await setGenerationSpeed("Image", root));
     results.push(await setAspectRatio(options.aspectRatio, root));
-    results.push(await selectDropdownValue(["Duration"], options.duration, ["6s", "10s"], root));
-    results.push(await selectDropdownValue(["Resolution", "Quality"], options.resolution, ["480p", "720p"], root));
+    results.push(await setDuration(options.duration, root));
+    results.push(await setResolution(options.resolution, root));
   } else {
     results.push(await setGenerationSpeed(options.speed || "Speed", root));
     results.push(await setAspectRatio(options.aspectRatio, root));
