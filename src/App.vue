@@ -243,32 +243,6 @@ function generate() {
           <span>✨</span>
           <span>Generate</span>
         </button>
-
-        <!-- Advanced Settings -->
-        <details class="mt-4">
-          <summary class="text-xs uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-            Advanced Settings
-          </summary>
-          <div class="mt-3 space-y-3 p-4 bg-muted/10 rounded-xl">
-            <div class="space-y-2">
-              <label class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Negative Prompt</label>
-              <textarea
-                placeholder="What should be avoided?"
-                class="w-full h-20 p-3 bg-muted/20 rounded-lg border border-border/10 resize-none outline-none text-sm"
-              ></textarea>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div class="space-y-2">
-                <label class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Strength</label>
-                <input type="number" value="0.7" step="0.1" min="0" max="1" class="w-full p-3 bg-muted/20 rounded-lg border border-border/10 outline-none text-sm" />
-              </div>
-              <div class="space-y-2">
-                <label class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Steps</label>
-                <input type="number" value="30" min="1" max="100" class="w-full p-3 bg-muted/20 rounded-lg border border-border/10 outline-none text-sm" />
-              </div>
-            </div>
-          </div>
-        </details>
       </div>
 
       <!-- History Tab -->
