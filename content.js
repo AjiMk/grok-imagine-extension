@@ -62,24 +62,51 @@ function findRadioGroup(label, root = document) {
   return groups.find((group) => normalizeText(group.getAttribute("aria-label") || "").includes(target));
 }
 
-async function clickRadioOption(groupLabel, optionLabel, root = document) {
-  const group = findRadioGroup(groupLabel, root);
+async function setGenerationSpeed(value, root = document) {
+  const normalizedValue = normalizeText(value);
+  const group = findRadioGroup("Image generation speed", root);
   if (!group) {
-    return { ok: false, reason: `${groupLabel} control not found` };
+    return { ok: false, reason: "Image generation speed control not found" };
   }
 
-  const target = normalizeText(optionLabel);
-  const options = Array.from(group.querySelectorAll('[role="radio"], button'));
-  const option = options.find((element) => getElementText(element).includes(target));
+  const buttons = Array.from(group.querySelectorAll('[role="radio"], button'));
+  const targetButton = buttons.find((btn) => normalizeText(btn.textContent || "").includes(normalizedValue));
+  if (!targetButton) {
+    return { ok: false, reason: `${value} option not found` };
+  }
+
+  if (targetButton.getAttribute("aria-checked") === "true") {
+    return { ok: true };
+  }
+
+  targetButton.click();
+  await delay(200);
+  return { ok: true };
+}
+
+async function setAspectRatio(targetRatio, root = document) {
+  const trigger = findDropdownTrigger(["Aspect Ratio"], ["2:3", "3:2", "1:1", "9:16", "16:9"], root);
+  if (!trigger) {
+    return { ok: false, reason: "Aspect Ratio control not found" };
+  }
+
+  if (normalizeText(trigger.textContent || "").includes(normalizeText(targetRatio))) {
+    return { ok: true };
+  }
+
+  trigger.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+  trigger.click();
+  await delay(500);
+
+  const option = findOpenMenuOption(targetRatio, document);
   if (!option) {
-    return { ok: false, reason: `${optionLabel} option not found` };
+    return { ok: false, reason: `${targetRatio} option not found` };
   }
 
-  if (option.getAttribute("aria-checked") !== "true") {
-    option.click();
-    await delay(200);
-  }
-
+  await delay(200);
+  option.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+  option.click();
+  await delay(150);
   return { ok: true };
 }
 
@@ -97,7 +124,7 @@ function findDropdownTrigger(labelCandidates, knownValues, root = document) {
   });
 }
 
-function findOpenMenuOption(value) {
+function findOpenMenuOption(value, root = document) {
   const target = normalizeText(value);
   const selectors = [
     '[role="menuitem"]',
@@ -106,51 +133,25 @@ function findOpenMenuOption(value) {
     '[cmdk-item]',
     "button",
   ];
-  const candidates = Array.from(document.querySelectorAll(selectors.join(","))).filter(isVisible);
-  return candidates.find((element) => getElementText(element).includes(target));
+  const candidates = Array.from(root.querySelectorAll(selectors.join(",")));
+  return candidates.find((element) => {
+    if (!isVisible(element)) return false;
+    const text = getElementText(element);
+    return text.includes(target) || text === target;
+  });
 }
 
-async function selectDropdownValue(labelCandidates, value, knownValues) {
-  const normalizedValue = normalizeText(value);
-  const root = getPromptSectionRoot();
-  const trigger = findDropdownTrigger(labelCandidates, knownValues, root);
-
-  if (!trigger) {
-    return { ok: false, reason: `${labelCandidates[0]} control not found` };
-  }
-
-  if (normalizeText(trigger.textContent || "").includes(normalizedValue)) {
-    return { ok: true };
-  }
-
-  trigger.click();
-  await delay(200);
-
-  const option = findOpenMenuOption(value);
-  if (!option) {
-    return { ok: false, reason: `${value} option not found` };
-  }
-
-  option.click();
-  await delay(150);
-  return { ok: true };
-}
-
-async function applyGenerationOptions(options = {}) {
+async function applyGenerationOptions(options = {}, root = document) {
   const results = [];
-  const mode = options.type === "video" ? "Video" : "Image";
-  const root = getPromptSectionRoot();
-
-  results.push(await clickRadioOption("Generation mode", mode, root));
-  await delay(250);
 
   if (options.type === "video") {
-    results.push(await selectDropdownValue(["Aspect Ratio"], options.aspectRatio, ["2:3", "3:2", "1:1", "9:16", "16:9"]));
-    results.push(await selectDropdownValue(["Duration"], options.duration, ["6s", "10s"]));
-    results.push(await selectDropdownValue(["Resolution", "Quality"], options.resolution, ["480p", "720p"]));
+    results.push(await setGenerationSpeed("Image", root));
+    results.push(await setAspectRatio(options.aspectRatio, root));
+    results.push(await selectDropdownValue(["Duration"], options.duration, ["6s", "10s"], root));
+    results.push(await selectDropdownValue(["Resolution", "Quality"], options.resolution, ["480p", "720p"], root));
   } else {
-    results.push(await clickRadioOption("Image generation speed", options.speed || "Speed", root));
-    results.push(await selectDropdownValue(["Aspect Ratio"], options.aspectRatio, ["2:3", "3:2", "1:1", "9:16", "16:9"]));
+    results.push(await setGenerationSpeed(options.speed || "Speed", root));
+    results.push(await setAspectRatio(options.aspectRatio, root));
   }
 
   return {
@@ -158,6 +159,7 @@ async function applyGenerationOptions(options = {}) {
     results,
   };
 }
+
 
 function setNativeValue(element, value) {
   const prototype = Object.getPrototypeOf(element);
