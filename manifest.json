@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Nocturnal Curator",
   "version": "1.0.0",
-  "description": "A Chrome extension built from a Stitch design export.",
+  "description": "A Chrome extension for gromk imagine automations",
   "action": {},
   "side_panel": {
     "default_path": "sidepanel.html"
