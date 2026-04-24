@@ -63,7 +63,7 @@ function handleClickOutside(event) {
     >
       <ul
         v-if="isOpen"
-        class="absolute z-50 w-full mt-1 bg-card border border-border/20 rounded-lg shadow-lg overflow-hidden py-1"
+        class="absolute z-[100] w-full mt-1 bg-card border border-border/20 rounded-lg shadow-lg overflow-hidden py-1"
       >
         <li
           v-for="option in options"
