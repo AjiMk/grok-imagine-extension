@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import CustomSelect from './components/CustomSelect.vue';
 
 const activeTab = ref('templates');
 const prompt = ref('');
@@ -183,26 +184,28 @@ function generate() {
         <div class="grid grid-cols-2 gap-3">
           <div class="p-4 bg-muted/10 rounded-xl space-y-2">
             <label class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Aspect Ratio</label>
-            <select
+            <CustomSelect
               v-model="imageAspectRatio"
-              class="w-full bg-transparent border-0 outline-none text-sm font-medium cursor-pointer"
-            >
-              <option value="1:1">1:1</option>
-              <option value="16:9">16:9</option>
-              <option value="9:16">9:16</option>
-              <option value="4:3">4:3</option>
-              <option value="3:4">3:4</option>
-            </select>
+              :options="[
+                { value: '1:1', label: '1:1' },
+                { value: '16:9', label: '16:9' },
+                { value: '9:16', label: '9:16' },
+                { value: '4:3', label: '4:3' },
+                { value: '3:4', label: '3:4' }
+              ]"
+              placeholder="Select ratio..."
+            />
           </div>
           <div class="p-4 bg-muted/10 rounded-xl space-y-2">
             <label class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Mode</label>
-            <select
+            <CustomSelect
               v-model="imageSpeed"
-              class="w-full bg-transparent border-0 outline-none text-sm font-medium cursor-pointer"
-            >
-              <option value="Speed">⚡ Speed</option>
-              <option value="Quality">✨ Quality</option>
-            </select>
+              :options="[
+                { value: 'Speed', label: '⚡ Speed' },
+                { value: 'Quality', label: '✨ Quality' }
+              ]"
+              placeholder="Select mode..."
+            />
           </div>
         </div>
 
