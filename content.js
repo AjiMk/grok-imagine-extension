@@ -204,13 +204,14 @@ function insertPrompt(prompt) {
 
 function findSubmitButton() {
   const root = getPromptSectionRoot();
-  const direct = root.querySelector('button[type="submit"][aria-label="Submit"]:not([disabled])');
+  const direct = root.querySelector('button[type="submit"][aria-label="Submit"]')
   if (direct) {
     return direct;
   }
 
-  const buttons = Array.from(root.querySelectorAll("button"));
-  return buttons.find((button) => {
+  // Search in scoped root first
+  const scopedButtons = Array.from(root.querySelectorAll("button"));
+  const scopedResult = scopedButtons.find((button) => {
     const label = `${button.textContent || ""} ${button.getAttribute("aria-label") || ""}`.toLowerCase();
     return !button.disabled && (
       button.type === "submit" ||
@@ -220,6 +221,14 @@ function findSubmitButton() {
       label.includes("ask")
     );
   });
+
+  if (scopedResult) {
+    return scopedResult;
+  }
+
+  // Fall back to full document search for the Submit button
+  const docButtons = Array.from(document.querySelectorAll("button[type=\"submit\"][aria-label=\"Submit\"]"));
+  return docButtons.find((button) => !button.disabled) || null;
 }
 
 async function clickSubmit() {
@@ -232,14 +241,12 @@ async function clickSubmit() {
   }
 
   if (submitButton) {
-    submitButton.click();
-    return true;
-  }
-
-  const form = findComposer()?.closest("form");
-  if (form) {
-    form.requestSubmit?.();
-    return true;
+    const submitForm = document.querySelector('button[type="submit"][aria-label="Submit"]')?.closest('form');
+    if (submitForm) {
+      await delay(1000);
+      submitForm.requestSubmit();
+      return true;
+    }
   }
 
   return false;
@@ -314,15 +321,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const generation = message.generation || { promptText: message.prompt, attachments: [], options: {} };
 
   applyGenerationOptions(generation.options || {})
-    .then((optionsResult) => attachImages(generation.attachments || []))
-    .then((attachmentResult) => {
+    .then((optionsResult) => {
+      return attachImages(generation.attachments || []).then((attachmentResult) => ({
+        optionsResult,
+        attachmentResult,
+      }));
+    })
+    .then(({ optionsResult, attachmentResult }) => {
       const promptResult = insertPrompt(String(generation.promptText || generation.prompt || ""));
       if (promptResult.ok) {
         clickSubmit();
       }
-      return { optionsResult, attachmentResult, promptResult };
-    })
-    .then(({ optionsResult, attachmentResult, promptResult }) => {
       sendResponse({
         ok: promptResult.ok && optionsResult.ok,
         options: optionsResult,
