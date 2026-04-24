@@ -9,6 +9,33 @@ const imageAspectRatio = ref('1:1');
 const imageSpeed = ref('Speed');
 const videoResolution = ref('720p');
 const videoDuration = ref('10s');
+const uploadedImages = ref([]);
+const fileInput = ref(null);
+
+function triggerFileInput() {
+  fileInput.value?.click();
+}
+
+function handleFileSelect(event) {
+  const files = Array.from(event.target.files);
+  files.forEach(file => {
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        uploadedImages.value.push({
+          name: file.name,
+          dataUrl: e.target.result,
+          type: file.type
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+function removeImage(index) {
+  uploadedImages.value.splice(index, 1);
+}
 
 const templates = [
   { id: 1, title: 'Ethereal Flux', type: 'video', featured: true, image: 'https://picsum.photos/seed/flux/800/500' },
@@ -46,7 +73,7 @@ function generate() {
         type: 'NOCTURNAL_SUBMIT_PROMPT',
         generation: {
           promptText: prompt.value,
-          attachments: [],
+          attachments: uploadedImages.value,
           options: {
             type: generationType.value,
             aspectRatio: imageAspectRatio.value,
@@ -157,6 +184,42 @@ function generate() {
           placeholder="Describe specific details, mood, or elements to add..."
           class="w-full h-32 p-4 bg-muted/10 rounded-xl border border-border/20 resize-none outline-none focus:ring-2 focus:ring-primary/50 text-sm"
         ></textarea>
+
+        <!-- Image Upload -->
+        <div class="space-y-2">
+          <input
+            ref="fileInput"
+            type="file"
+            accept="image/*"
+            multiple
+            class="hidden"
+            @change="handleFileSelect"
+          />
+          <div
+            @click="triggerFileInput"
+            class="border-2 border-dashed border-border/40 rounded-xl p-4 cursor-pointer hover:border-primary/50 transition-colors"
+          >
+            <div class="flex items-center justify-center gap-2 text-muted-foreground text-sm">
+              <span class="text-lg">📎</span>
+              <span>Attach reference images</span>
+            </div>
+          </div>
+          <div v-if="uploadedImages.length > 0" class="flex gap-2 flex-wrap">
+            <div
+              v-for="(img, index) in uploadedImages"
+              :key="index"
+              class="relative w-16 h-16 rounded-lg overflow-hidden bg-muted/20"
+            >
+              <img :src="img.dataUrl" :alt="img.name" class="w-full h-full object-cover" />
+              <button
+                @click.stop="removeImage(index)"
+                class="absolute top-0 right-0 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white text-xs hover:bg-red-500"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
 
         <!-- Generation Type Toggle -->
         <div class="flex gap-2">

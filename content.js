@@ -322,6 +322,8 @@ async function attachImages(attachments = []) {
   fileInput.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
   fileInput.dispatchEvent(new Event("change", { bubbles: true, cancelable: true }));
 
+  await delay(attachments.length > 2 ? 1500 : 800);
+
   return { ok: true, count: transfer.files.length };
 }
 
