@@ -1,5 +1,5 @@
 (() => {
-  // content/content.js
+  // content/utils.js
   function delay(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -14,6 +14,8 @@
   function getElementText(element) {
     return normalizeText(`${element.textContent || ""} ${element.getAttribute("aria-label") || ""}`);
   }
+
+  // content/composer.js
   function findComposer() {
     const promptComposer = document.querySelector('.query-bar [contenteditable="true"].ProseMirror');
     if (promptComposer) {
@@ -45,6 +47,8 @@
     }
     return composer.closest(".relative.flex-1.min-w-0.max-w-3xl") || composer.closest(".query-bar")?.parentElement || document;
   }
+
+  // content/submission.js
   function setNativeValue(element, value) {
     const prototype = Object.getPrototypeOf(element);
     const descriptor = Object.getOwnPropertyDescriptor(prototype, "value");
@@ -113,6 +117,8 @@
     }
     return false;
   }
+
+  // content/attachments.js
   function dataUrlToFile(attachment) {
     const [header, base64] = String(attachment.dataUrl || "").split(",");
     const mimeMatch = header.match(/data:(.*?);base64/);
@@ -158,6 +164,8 @@
     await delay(attachments.length > 2 ? 1500 : 800);
     return { ok: true, count: transfer.files.length };
   }
+
+  // content/options.js
   async function clickRadiogroupOption(groupLabel, value, root = document, matchFn = (text, val) => text === val) {
     let group = root.querySelector(`[role="radiogroup"][aria-label="${groupLabel}"]`);
     let attempts = 0;
@@ -189,8 +197,6 @@
     return clickRadiogroupOption("Video duration", duration, root, (text, val) => text.toLowerCase().includes(val.toLowerCase()));
   }
   async function setGenerationSpeed(value, root = document) {
-    console.log("Image generation speed");
-    console.log(window.location.href);
     const normalizedValue = normalizeText(value);
     return clickRadiogroupOption("Image generation speed", normalizedValue, root, (text, val) => text.toLowerCase().includes(val));
   }
@@ -259,6 +265,8 @@
       results
     };
   }
+
+  // content/content.js
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message?.type === "NOCTURNAL_PING") {
       sendResponse({ ok: true });
