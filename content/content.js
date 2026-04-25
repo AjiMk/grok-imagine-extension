@@ -248,6 +248,9 @@ async function setDuration(duration, root = document) {
 }
 
 async function setGenerationSpeed(value, root = document) {
+  console.log("Image generation speed")
+  console.log(window.location.href)
+  
   const normalizedValue = normalizeText(value);
   return clickRadiogroupOption("Image generation speed", normalizedValue, root, (text, val) => text.toLowerCase().includes(val));
 }
