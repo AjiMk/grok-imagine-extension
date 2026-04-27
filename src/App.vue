@@ -61,26 +61,57 @@ function setTab(tabId) {
   activeTab.value = tabId;
 }
 
-function generate() {
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function sendWithRetry(tabId, message, retries = 3, delayMs = 500) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await chrome.tabs.sendMessage(tabId, message);
+      return { ok: true };
+    } catch (err) {
+      if (i < retries - 1) {
+        await delay(delayMs);
+      } else {
+        return { ok: false, error: err.message };
+      }
+    }
+  }
+}
+
+async function generate() {
   if (!prompt.value.trim()) {
     alert('Please enter a prompt');
     return;
   }
 
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, {
-        type: 'NOCTURNAL_SUBMIT_PROMPT',
-        generation: {
-          promptText: prompt.value,
-          attachments: uploadedImages.value,
-          options: {
-            type: generationType.value,
-            aspectRatio: imageAspectRatio.value,
-            ...(generationType.value === 'image' ? { speed: imageSpeed.value } : { resolution: videoResolution.value, duration: videoDuration.value })
-          }
-        }
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+
+  try {
+    await chrome.tabs.sendMessage(tab.id, { type: 'NOCTURNAL_PING' });
+  } catch (err) {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.bundle.js']
       });
+    } catch (injErr) {
+      return;
+    }
+  }
+
+  chrome.tabs.sendMessage(tab.id, {
+    type: 'NOCTURNAL_SUBMIT_PROMPT',
+    generation: {
+      promptText: prompt.value,
+      attachments: [],
+      options: {
+        type: generationType.value,
+        aspectRatio: imageAspectRatio.value,
+        ...(generationType.value === 'image' ? { speed: imageSpeed.value } : { resolution: videoResolution.value, duration: videoDuration.value })
+      }
     }
   });
 }
