@@ -49,7 +49,7 @@ function findSubmitButton() {
 
   let direct;
   if (isEditMode()) {
-    direct = root.querySelector('button[aria-label="Edit"]');
+    direct = root.querySelector('button[aria-label="Edit"], button[aria-label="Make video"]');
   } else {
     direct = root.querySelector('button[type="submit"][aria-label="Submit"]');
   }

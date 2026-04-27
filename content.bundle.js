@@ -104,7 +104,7 @@
     const root = getPromptSectionRoot();
     let direct;
     if (isEditMode()) {
-      direct = root.querySelector('button[aria-label="Edit"]');
+      direct = root.querySelector('button[aria-label="Edit"], button[aria-label="Make video"]');
     } else {
       direct = root.querySelector('button[type="submit"][aria-label="Submit"]');
     }
@@ -202,7 +202,10 @@
     }
     if (!group) return { ok: false, reason: `${groupLabel} group not found` };
     const options = Array.from(group.querySelectorAll('button[role="radio"]'));
-    const target = options.find((opt) => matchFn(opt.innerText.trim(), value));
+    const target = options.find((opt) => {
+      const text = isEditMode() ? (opt.getAttribute("aria-label") || "").trim() : opt.innerText.trim();
+      return matchFn(text, value);
+    });
     if (!target) return { ok: false, reason: `${value} option not found` };
     if (target.getAttribute("aria-checked") === "true") return { ok: true };
     target.click();
