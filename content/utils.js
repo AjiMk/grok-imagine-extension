@@ -16,4 +16,25 @@ function getElementText(element) {
   return normalizeText(`${element.textContent || ""} ${element.getAttribute("aria-label") || ""}`);
 }
 
-export { delay, normalizeText, isVisible, getElementText };
+function isEditMode() {
+  const url = window.location.href;
+  return /^https:\/\/grok\.com\/imagine\/post\/[^/]+$/.test(url);
+}
+
+function isGenerationMode() {
+  const url = window.location.href;
+  return /^https:\/\/grok\.com\/imagine(?!\/post)/.test(url);
+}
+
+function hasVideoContent(element) {
+  if (!element) return false;
+  return !!element.querySelector('video');
+}
+
+function isVideoEditMode() {
+  if (!isEditMode()) return false;
+  const element = document.querySelector('main > article > div > div:nth-of-type(2) > div > div:nth-of-type(1)');
+  return hasVideoContent(element);
+}
+
+export { delay, normalizeText, isVisible, getElementText, isEditMode, isGenerationMode, hasVideoContent, isVideoEditMode };

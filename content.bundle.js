@@ -14,6 +14,23 @@
   function getElementText(element) {
     return normalizeText(`${element.textContent || ""} ${element.getAttribute("aria-label") || ""}`);
   }
+  function isEditMode() {
+    const url = window.location.href;
+    return /^https:\/\/grok\.com\/imagine\/post\/[^/]+$/.test(url);
+  }
+  function isGenerationMode() {
+    const url = window.location.href;
+    return /^https:\/\/grok\.com\/imagine(?!\/post)/.test(url);
+  }
+  function hasVideoContent(element) {
+    if (!element) return false;
+    return !!element.querySelector("video");
+  }
+  function isVideoEditMode() {
+    if (!isEditMode()) return false;
+    const element = document.querySelector("main > article > div > div:nth-of-type(2) > div > div:nth-of-type(1)");
+    return hasVideoContent(element);
+  }
 
   // content/composer.js
   function findComposer() {
@@ -85,7 +102,12 @@
   }
   function findSubmitButton() {
     const root = getPromptSectionRoot();
-    const direct = root.querySelector('button[type="submit"][aria-label="Submit"]');
+    let direct;
+    if (isEditMode()) {
+      direct = root.querySelector('button[aria-label="Edit"]');
+    } else {
+      direct = root.querySelector('button[type="submit"][aria-label="Submit"]');
+    }
     if (direct) {
       return direct;
     }
@@ -108,11 +130,15 @@
       submitButton = findSubmitButton();
     }
     if (submitButton) {
-      const submitForm = document.querySelector('button[type="submit"][aria-label="Submit"]')?.closest("form");
-      if (submitForm) {
-        await delay(1e3);
-        submitForm.requestSubmit();
-        return true;
+      if (isEditMode()) {
+        submitButton.click();
+      } else {
+        const submitForm = document.querySelector('button[type="submit"][aria-label="Submit"]')?.closest("form");
+        if (submitForm) {
+          await delay(1e3);
+          submitForm.requestSubmit();
+          return true;
+        }
       }
     }
     return false;
@@ -191,14 +217,20 @@
     return result;
   }
   async function setResolution(resolution, root = document) {
+    if (isVideoEditMode()) {
+      return;
+    }
     return clickRadiogroupOption("Video resolution", resolution, root, (text, val) => text.toLowerCase().includes(val.toLowerCase()));
   }
   async function setDuration(duration, root = document) {
+    if (isVideoEditMode()) {
+      return;
+    }
     return clickRadiogroupOption("Video duration", duration, root, (text, val) => text.toLowerCase().includes(val.toLowerCase()));
   }
   async function setGenerationSpeed(value, root = document) {
     const normalizedValue = normalizeText(value);
-    return clickRadiogroupOption("Image generation speed", normalizedValue, root, (text, val) => text.toLowerCase().includes(val));
+    return isGenerationMode() && clickRadiogroupOption("Image generation speed", normalizedValue, root, (text, val) => text.toLowerCase().includes(val));
   }
   function findDropdownTrigger(labelCandidates, knownValues, root = document) {
     const labels = labelCandidates.map(normalizeText);
@@ -229,6 +261,9 @@
     });
   }
   async function setAspectRatio(targetRatio, root = document) {
+    if (isEditMode()) {
+      return { ok: true };
+    }
     const trigger = findDropdownTrigger(["Aspect Ratio"], ["2:3", "3:2", "1:1", "9:16", "16:9"], root);
     if (!trigger) {
       return { ok: false, reason: "Aspect Ratio control not found" };
