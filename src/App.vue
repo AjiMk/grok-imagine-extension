@@ -68,7 +68,7 @@ async function generate() {
     try {
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ['content/content.js']
+        files: ['content.bundle.js']
       });
     } catch (injErr) {
       return;

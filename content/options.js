@@ -1,4 +1,4 @@
-import { delay, normalizeText, isVisible, getElementText } from './utils.js';
+import { delay, normalizeText, isVisible, getElementText, isGenerationMode, isEditMode, isVideoEditMode } from './utils.js';
 
 async function clickRadiogroupOption(groupLabel, value, root = document, matchFn = (text, val) => text === val) {
   let group = root.querySelector(`[role="radiogroup"][aria-label="${groupLabel}"]`);
@@ -12,7 +12,10 @@ async function clickRadiogroupOption(groupLabel, value, root = document, matchFn
   if (!group) return { ok: false, reason: `${groupLabel} group not found` };
 
   const options = Array.from(group.querySelectorAll('button[role="radio"]'));
-  const target = options.find(opt => matchFn(opt.innerText.trim(), value));
+  const target = options.find(opt => {
+    const text = isEditMode() ? (opt.getAttribute('aria-label') || '').trim() : opt.innerText.trim();
+    return matchFn(text, value);
+  });
   if (!target) return { ok: false, reason: `${value} option not found` };
   if (target.getAttribute("aria-checked") === "true") return { ok: true };
 
@@ -30,16 +33,35 @@ async function setGenerationMode(mode, root = document) {
 }
 
 async function setResolution(resolution, root = document) {
+  /**
+   * Skipping setting resolution on video edit
+   */
+  if(isVideoEditMode()) {
+    return;
+  }
+
   return clickRadiogroupOption("Video resolution", resolution, root, (text, val) => text.toLowerCase().includes(val.toLowerCase()));
 }
 
 async function setDuration(duration, root = document) {
+  /**
+   * Skipping setting resolution on video edit
+   */
+  if(isVideoEditMode()) {
+    return;
+  }
+
   return clickRadiogroupOption("Video duration", duration, root, (text, val) => text.toLowerCase().includes(val.toLowerCase()));
 }
 
 async function setGenerationSpeed(value, root = document) {
   const normalizedValue = normalizeText(value);
-  return clickRadiogroupOption("Image generation speed", normalizedValue, root, (text, val) => text.toLowerCase().includes(val));
+
+  /**
+   * The generation speed option is only available with image generation
+   *
+   */
+  return isGenerationMode() && clickRadiogroupOption("Image generation speed", normalizedValue, root, (text, val) => text.toLowerCase().includes(val));
 }
 
 function findDropdownTrigger(labelCandidates, knownValues, root = document) {
@@ -74,6 +96,14 @@ function findOpenMenuOption(value, root = document) {
 }
 
 async function setAspectRatio(targetRatio, root = document) {
+   /**
+   * The aspect-ratio option is only available with generation not on edit mode
+   *
+   */
+  if(isEditMode()) {
+    return { ok: true };
+  }
+
   const trigger = findDropdownTrigger(["Aspect Ratio"], ["2:3", "3:2", "1:1", "9:16", "16:9"], root);
   if (!trigger) {
     return { ok: false, reason: "Aspect Ratio control not found" };

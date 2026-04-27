@@ -1,4 +1,4 @@
-import { delay, getElementText } from './utils.js';
+import { delay, getElementText, isEditMode } from './utils.js';
 import { findComposer, getPromptSectionRoot } from './composer.js';
 
 function setNativeValue(element, value) {
@@ -46,7 +46,14 @@ function insertPrompt(prompt) {
 
 function findSubmitButton() {
   const root = getPromptSectionRoot();
-  const direct = root.querySelector('button[type="submit"][aria-label="Submit"]')
+
+  let direct;
+  if (isEditMode()) {
+    direct = root.querySelector('button[aria-label="Edit"], button[aria-label="Make video"]');
+  } else {
+    direct = root.querySelector('button[type="submit"][aria-label="Submit"]');
+  }
+
   if (direct) {
     return direct;
   }
@@ -81,11 +88,15 @@ async function clickSubmit() {
   }
 
   if (submitButton) {
-    const submitForm = document.querySelector('button[type="submit"][aria-label="Submit"]')?.closest('form');
-    if (submitForm) {
-      await delay(1000);
-      submitForm.requestSubmit();
-      return true;
+    if(isEditMode()) {
+      submitButton.click();
+    }else {
+      const submitForm = document.querySelector('button[type="submit"][aria-label="Submit"]')?.closest('form');
+      if (submitForm) {
+        await delay(1000);
+        submitForm.requestSubmit();
+        return true;
+      } 
     }
   }
 

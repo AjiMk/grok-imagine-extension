@@ -1,5 +1,5 @@
 (() => {
-  // content/content.js
+  // content/utils.js
   function delay(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -14,6 +14,25 @@
   function getElementText(element) {
     return normalizeText(`${element.textContent || ""} ${element.getAttribute("aria-label") || ""}`);
   }
+  function isEditMode() {
+    const url = window.location.href;
+    return /^https:\/\/grok\.com\/imagine\/post\/[^/]+$/.test(url);
+  }
+  function isGenerationMode() {
+    const url = window.location.href;
+    return /^https:\/\/grok\.com\/imagine(?!\/post)/.test(url);
+  }
+  function hasVideoContent(element) {
+    if (!element) return false;
+    return !!element.querySelector("video");
+  }
+  function isVideoEditMode() {
+    if (!isEditMode()) return false;
+    const element = document.querySelector("main > article > div > div:nth-of-type(2) > div > div:nth-of-type(1)");
+    return hasVideoContent(element);
+  }
+
+  // content/composer.js
   function findComposer() {
     const promptComposer = document.querySelector('.query-bar [contenteditable="true"].ProseMirror');
     if (promptComposer) {
@@ -45,6 +64,8 @@
     }
     return composer.closest(".relative.flex-1.min-w-0.max-w-3xl") || composer.closest(".query-bar")?.parentElement || document;
   }
+
+  // content/submission.js
   function setNativeValue(element, value) {
     const prototype = Object.getPrototypeOf(element);
     const descriptor = Object.getOwnPropertyDescriptor(prototype, "value");
@@ -81,7 +102,12 @@
   }
   function findSubmitButton() {
     const root = getPromptSectionRoot();
-    const direct = root.querySelector('button[type="submit"][aria-label="Submit"]');
+    let direct;
+    if (isEditMode()) {
+      direct = root.querySelector('button[aria-label="Edit"], button[aria-label="Make video"]');
+    } else {
+      direct = root.querySelector('button[type="submit"][aria-label="Submit"]');
+    }
     if (direct) {
       return direct;
     }
@@ -104,15 +130,21 @@
       submitButton = findSubmitButton();
     }
     if (submitButton) {
-      const submitForm = document.querySelector('button[type="submit"][aria-label="Submit"]')?.closest("form");
-      if (submitForm) {
-        await delay(1e3);
-        submitForm.requestSubmit();
-        return true;
+      if (isEditMode()) {
+        submitButton.click();
+      } else {
+        const submitForm = document.querySelector('button[type="submit"][aria-label="Submit"]')?.closest("form");
+        if (submitForm) {
+          await delay(1e3);
+          submitForm.requestSubmit();
+          return true;
+        }
       }
     }
     return false;
   }
+
+  // content/attachments.js
   function dataUrlToFile(attachment) {
     const [header, base64] = String(attachment.dataUrl || "").split(",");
     const mimeMatch = header.match(/data:(.*?);base64/);
@@ -158,6 +190,8 @@
     await delay(attachments.length > 2 ? 1500 : 800);
     return { ok: true, count: transfer.files.length };
   }
+
+  // content/options.js
   async function clickRadiogroupOption(groupLabel, value, root = document, matchFn = (text, val) => text === val) {
     let group = root.querySelector(`[role="radiogroup"][aria-label="${groupLabel}"]`);
     let attempts = 0;
@@ -168,7 +202,10 @@
     }
     if (!group) return { ok: false, reason: `${groupLabel} group not found` };
     const options = Array.from(group.querySelectorAll('button[role="radio"]'));
-    const target = options.find((opt) => matchFn(opt.innerText.trim(), value));
+    const target = options.find((opt) => {
+      const text = isEditMode() ? (opt.getAttribute("aria-label") || "").trim() : opt.innerText.trim();
+      return matchFn(text, value);
+    });
     if (!target) return { ok: false, reason: `${value} option not found` };
     if (target.getAttribute("aria-checked") === "true") return { ok: true };
     target.click();
@@ -183,14 +220,20 @@
     return result;
   }
   async function setResolution(resolution, root = document) {
+    if (isVideoEditMode()) {
+      return;
+    }
     return clickRadiogroupOption("Video resolution", resolution, root, (text, val) => text.toLowerCase().includes(val.toLowerCase()));
   }
   async function setDuration(duration, root = document) {
+    if (isVideoEditMode()) {
+      return;
+    }
     return clickRadiogroupOption("Video duration", duration, root, (text, val) => text.toLowerCase().includes(val.toLowerCase()));
   }
   async function setGenerationSpeed(value, root = document) {
     const normalizedValue = normalizeText(value);
-    return clickRadiogroupOption("Image generation speed", normalizedValue, root, (text, val) => text.toLowerCase().includes(val));
+    return isGenerationMode() && clickRadiogroupOption("Image generation speed", normalizedValue, root, (text, val) => text.toLowerCase().includes(val));
   }
   function findDropdownTrigger(labelCandidates, knownValues, root = document) {
     const labels = labelCandidates.map(normalizeText);
@@ -221,6 +264,9 @@
     });
   }
   async function setAspectRatio(targetRatio, root = document) {
+    if (isEditMode()) {
+      return { ok: true };
+    }
     const trigger = findDropdownTrigger(["Aspect Ratio"], ["2:3", "3:2", "1:1", "9:16", "16:9"], root);
     if (!trigger) {
       return { ok: false, reason: "Aspect Ratio control not found" };
@@ -257,6 +303,8 @@
       results
     };
   }
+
+  // content/content.js
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message?.type === "NOCTURNAL_PING") {
       sendResponse({ ok: true });
